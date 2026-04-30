@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReflectX — Search the Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#05080f;--surface:#0d1117;--surface2:#161b26;--border:#1f2d45;--accent:#8b5cf6;--glow:rgba(139,92,246,.3);--accent2:#a78bfa;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--text:#f1f5f9;--muted:#64748b;--sub:#94a3b8}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    header{padding:40px 24px 0;text-align:center}
+    .logo{font-size:2.8rem;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,#8b5cf6,#ec4899,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+    .tagline{color:var(--muted);font-size:.85rem;margin-bottom:28px}
+    .search-wrap{max-width:680px;margin:0 auto 20px}
+    .search-bar{display:flex;align-items:center;background:var(--surface);border:1.5px solid var(--border);border-radius:50px;padding:4px 4px 4px 20px;transition:.2s}
+    .search-bar:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+    #q{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:inherit;font-size:1rem;padding:8px 0}
+    #q::placeholder{color:var(--muted)}
+    .btn{background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;color:#fff;padding:10px 24px;border-radius:50px;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s}
+    .btn:hover{transform:scale(1.02);box-shadow:0 4px 16px rgba(139,92,246,.5)}
+    .toggle-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:28px}
+    .t-label{font-size:.85rem;color:var(--muted)}
+    .switch{position:relative;width:44px;height:24px;cursor:pointer}
+    .switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;inset:0;background:#1f2d45;border-radius:50px;transition:.3s}
+    .slider::before{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.3s}
+    input:checked+.slider{background:var(--success)}
+    input:checked+.slider::before{transform:translateX(20px)}
+    .mbadge{font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:50px}
+    .mbadge.u{background:rgba(239,68,68,.15);color:var(--danger)}
+    .mbadge.s{background:rgba(16,185,129,.15);color:var(--success)}
+    .hint-sec{max-width:680px;margin:0 auto 24px}
+    .hint{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px 20px}
+    .hint h4{font-size:.82rem;font-weight:700;color:var(--warning);margin-bottom:10px}
+    .chips{display:flex;flex-direction:column;gap:6px}
+    .chip{display:inline-flex;align-items:center;gap:10px}
+    .payload{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.78rem;font-family:monospace;color:#f87171;cursor:pointer;transition:.2s}
+    .payload:hover{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.4)}
+    .pdesc{font-size:.78rem;color:var(--muted)}
+    .results-sec{max-width:680px;margin:0 auto 40px;display:none}
+    .rh{font-size:.82rem;color:var(--muted);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    .rh strong{color:var(--text)}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .ccard{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .ccard.u{border-color:rgba(239,68,68,.35)}
+    .ccard.s{border-color:rgba(16,185,129,.35)}
+    .ch{padding:10px 14px;font-size:.78rem;font-weight:700;border-bottom:1px solid var(--border)}
+    .ch.u{background:rgba(239,68,68,.1);color:var(--danger)}
+    .ch.s{background:rgba(16,185,129,.1);color:var(--success)}
+    .cb{padding:12px 14px;font-size:.82rem;color:var(--sub);line-height:1.6}
+    .cb code{background:var(--bg);padding:2px 6px;border-radius:4px;font-size:.78rem}
+    .rbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+    .rl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+    .rl.u{color:var(--danger)} .rl.s{color:var(--success)}
+    .ri{padding:16px 0;border-bottom:1px solid var(--border)}
+    .ri-url{font-size:.78rem;color:#86efac;margin-bottom:3px}
+    .ri-title{font-size:1rem;font-weight:600;color:var(--accent2);margin-bottom:4px}
+    .ri-snip{font-size:.85rem;color:var(--muted);line-height:1.6}
+    /* vuln panel */
+    .vs{max-width:680px;margin:0 auto 60px}
+    .vt{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 22px;cursor:pointer;transition:.2s;user-select:none}
+    .vt:hover{border-color:var(--danger)}
+    .vt h3{display:flex;align-items:center;gap:10px;font-size:.95rem}
+    .vbadge{background:rgba(239,68,68,.15);color:var(--danger);padding:3px 10px;border-radius:50px;font-size:.72rem;font-weight:600}
+    .chev{color:var(--muted);transition:.3s}.chev.open{transform:rotate(180deg)}
+    .vb{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:24px;display:none}
+    .vb.open{display:block}
+    .vb h4{font-size:.88rem;font-weight:600;color:var(--danger);margin-bottom:8px;margin-top:16px}
+    .vb h4:first-child{margin-top:0}
+    .vb p{font-size:.85rem;color:var(--sub);line-height:1.7;margin-bottom:8px}
+    .vb pre{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.8rem;overflow-x:auto;color:#86efac;margin:8px 0 12px;line-height:1.5}
+    footer{text-align:center;padding:24px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:600px){.compare{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">Reflect<span style="opacity:.7">X</span></div>
+  <div class="tagline">Search · Discover · Explore &nbsp;·&nbsp; <span style="color:var(--danger);font-weight:600">XSS Demo — VulnLab</span></div>
+  <div class="search-wrap">
+    <div class="search-bar">
+      <input type="text" id="q" placeholder="Search anything…" autocomplete="off" />
+      <button class="btn" onclick="doSearch()">Search</button>
+    </div>
+  </div>
+  <div class="toggle-row">
+    <span class="t-label">Mode:</span>
+    <span id="bl" class="mbadge u">⚡ UNSAFE (innerHTML)</span>
+    <label class="switch"><input type="checkbox" id="stog" onchange="updateMode()" /><span class="slider"></span></label>
+    <span id="br" class="mbadge s" style="display:none">✅ SAFE (textContent)</span>
+  </div>
+</header>
+
+<div class="hint-sec">
+  <div class="hint">
+    <h4>⚠️ XSS Payloads — Click any to inject:</h4>
+    <div class="chips">
+      <div class="chip"><span class="payload" onclick="inject(this.textContent)">&lt;img src=x onerror=alert('XSS')&gt;</span><span class="pdesc">Classic image onerror</span></div>
+      <div class="chip"><span class="payload" onclick="inject(this.textContent)">&lt;svg onload=alert(document.cookie)&gt;</span><span class="pdesc">SVG onload — cookie theft</span></div>
+      <div class="chip"><span class="payload" onclick="inject(this.textContent)">&lt;iframe src="javascript:alert('xss')"&gt;&lt;/iframe&gt;</span><span class="pdesc">iframe javascript: URI</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="results-sec" id="rs">
+  <div class="rh">About <strong id="rc">0</strong> results for <strong id="qh"></strong></div>
+  <div class="compare">
+    <div class="ccard u"><div class="ch u">❌ innerHTML (UNSAFE)</div><div class="cb">Input injected directly:<br/><code>div.innerHTML = userInput</code><br/>HTML/JS in input executes!</div></div>
+    <div class="ccard s"><div class="ch s">✅ textContent (SAFE)</div><div class="cb">Input treated as plain text:<br/><code>div.textContent = userInput</code><br/>Tags rendered as literal text.</div></div>
+  </div>
+  <div class="rbox" id="ubox"><div class="rl u">⚡ REFLECTED — innerHTML (VULNERABLE)</div><div id="uo"></div></div>
+  <div class="rbox" id="sbox" style="display:none"><div class="rl s">✅ REFLECTED — textContent (SAFE)</div><div id="so"></div></div>
+  <div class="ri"><div class="ri-url">reflectx.io › search › results</div><div class="ri-title" id="rt1">Matching results</div><div class="ri-snip">ReflectX indexes the web in real time to deliver the most relevant results for your query.</div></div>
+  <div class="ri"><div class="ri-url">reflectx.io › news</div><div class="ri-title">Latest news</div><div class="ri-snip">Breaking articles and stories from thousands of trusted publishers worldwide.</div></div>
+</div>
+
+<div class="vs">
+  <div class="vt" onclick="toggleV()">
+    <h3><span>🔍</span>What's Vulnerable Here?<span class="vbadge">REFLECTED XSS</span></h3>
+    <span class="chev" id="chev">▼</span>
+  </div>
+  <div class="vb" id="vb">
+    <h4>🚨 The Vulnerability — Reflected XSS</h4>
+    <p>Reflected XSS occurs when user input is embedded directly into the page HTML without sanitisation. The malicious script executes in the victim's browser immediately.</p>
+    <pre style="color:#f87171">// ❌ VULNERABLE
+const q = new URLSearchParams(location.search).get('q');
+resultsDiv.innerHTML = `Results for: ${q}`;
+// q = &lt;img src=x onerror=alert(1)&gt; → alert fires!</pre>
+    <h4>✅ The Fix</h4>
+    <p>Use <code style="background:#05080f;padding:2px 6px;border-radius:4px">textContent</code> instead of <code style="background:#05080f;padding:2px 6px;border-radius:4px">innerHTML</code>, or use a sanitiser like DOMPurify.</p>
+    <pre>// ✅ SAFE option 1 — textContent
+resultsDiv.textContent = `Results for: ${q}`;
+
+// ✅ SAFE option 2 — DOMPurify
+import DOMPurify from 'dompurify';
+resultsDiv.innerHTML = DOMPurify.sanitize(q);</pre>
+    <h4>📚 Further Reading</h4>
+    <p>OWASP XSS — <a href="https://owasp.org/www-community/attacks/xss/" style="color:var(--accent2)" target="_blank">owasp.org/xss</a></p>
+  </div>
+</div>
+
+<footer>⚠️ VulnLab educational demo — XSS is intentional. Toggle Safe Mode to see the fix.</footer>
+
+<script>
+  let safe = false;
+  function updateMode() {
+    safe = document.getElementById('stog').checked;
+    document.getElementById('bl').style.display = safe ? 'none' : '';
+    document.getElementById('br').style.display = safe ? '' : 'none';
+    document.getElementById('ubox').style.display = safe ? 'none' : '';
+    document.getElementById('sbox').style.display = safe ? '' : 'none';
+  }
+  function inject(t) { document.getElementById('q').value = t; doSearch(); }
+  function doSearch() {
+    const query = document.getElementById('q').value;
+    if (!query) return;
+    const rs = document.getElementById('rs');
+    rs.style.display = 'block';
+    rs.style.animation = 'fadeIn .3s ease';
+    document.getElementById('rc').textContent = (Math.floor(Math.random()*900)+100).toLocaleString()+',000';
+    document.getElementById('qh').textContent = '"' + query + '"';
+    document.getElementById('uo').innerHTML = 'Search results for: ' + query;
+    document.getElementById('so').textContent = 'Search results for: ' + query;
+    document.getElementById('rt1').textContent = 'Results for: ' + query;
+    updateMode();
+  }
+  document.getElementById('q').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+  function toggleV() {
+    document.getElementById('vb').classList.toggle('open');
+    document.getElementById('chev').classList.toggle('open');
+  }
+</script>
+</body>
+</html>
